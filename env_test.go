@@ -19,14 +19,6 @@ type UtilEnv struct {
 	Log func(...interface{}) (int, error)
 }
 
-func (e *OsEnv) Mock(iface interface{}) func() {
-	return mock(e, iface)
-}
-
-func (e *UtilEnv) Mock(iface interface{}) func() {
-	return mock(e, iface)
-}
-
 func TestEnvMockRandom(t *testing.T) {
 	path := "file:///this/is/sample/path"
 	var env = OsEnv{
@@ -42,7 +34,7 @@ func TestEnvMockRandom(t *testing.T) {
 	}
 
 	url := "http://host:port/this/is/sample/path"
-	defer env.Mock(struct {
+	defer MockOne(&env, struct {
 		Create func(string) (*os.File, error)
 		Path   string
 		umask  int
@@ -74,7 +66,7 @@ func TestEnvMockSame(t *testing.T) {
 	}
 
 	url := "http://host:port/this/is/sample/path"
-	defer env.Mock(OsEnv{
+	defer MockOne(&env, OsEnv{
 		Create: func(s string) (*os.File, error) {
 			return nil, errors.New("cant create a file")
 		},
@@ -100,9 +92,9 @@ func TestMock(t *testing.T) {
 		umask:      0x022,
 	}
 
-	Publish(&env, &UtilEnv{})
+	Introduce(&env, &UtilEnv{})
 
-	defer Mock(
+	defer MockMany(
 		&OsEnv{
 			Create: func(s string) (*os.File, error) {
 				return nil, errors.New("cant mock")

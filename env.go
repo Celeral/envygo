@@ -5,24 +5,27 @@ import (
 	"reflect"
 )
 
-type Env interface {
-	Mock(env interface{}) func()
-}
+var registered []interface{}
 
-var registered []Env
-
-func Publish(envs ...Env) {
+// Introduce introduces (akin to registers) environments which are
+// likely to be mocked in future using MockMany function
+func Introduce(envs ...interface{}) {
 	registered = append(registered, envs...)
 }
 
-func Mock(envs ...Env) func() {
+// MockMany is a convenience method for mocking many environments
+// at once that were previously introduced using Introduce function.
+// Each of the envs is matched to a previously introduced environment
+// based on type commonality and the introduced environment is
+// mocked using the passed environment.
+func MockMany(envs ...interface{}) func() {
 	var funcs []func()
 
 	for _, unknown := range envs {
 		unknownType := reflect.ValueOf(unknown).Type()
 		for _, known := range registered {
 			if reflect.ValueOf(known).Type() == unknownType {
-				funcs = append(funcs, mock(known, reflect.ValueOf(unknown).Elem().Interface()))
+				funcs = append(funcs, MockOne(known, reflect.ValueOf(unknown).Elem().Interface()))
 				unknownType = nil
 			}
 		}
@@ -33,17 +36,18 @@ func Mock(envs ...Env) func() {
 	}
 
 	return func() {
-		Unmock(funcs...)
+		for _, function := range funcs {
+			defer function()
+		}
 	}
 }
 
-func Unmock(unmockers ...func()) {
-	for _, function := range unmockers {
-		defer function()
-	}
-}
-
-func mock(old Env, new interface{}) func() {
+// MockOne mocks the old environment using the values in the new environment
+// If the type for old environment is identical to the type of the new environment
+// then any attribute with value identical to default value for its type is
+// not mocked. But if types are different then the attribute is mocked regardless
+// of its value
+func MockOne(old interface{}, new interface{}) func() {
 	valueOfNew := reflect.ValueOf(new)
 	typeOfNew := reflect.TypeOf(new)
 
@@ -78,7 +82,7 @@ func mock(old Env, new interface{}) func() {
 	blank := valueOfBlank.Interface()
 
 	return func() {
-		mock(old, blank)
+		MockOne(old, blank)
 	}
 }
 
