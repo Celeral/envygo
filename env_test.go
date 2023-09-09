@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"sync"
 	"testing"
 )
 
@@ -169,4 +170,66 @@ func TestResetMockFields(t *testing.T) {
 	if !called || perm != env.umask || path != env.Path {
 		t.Fail()
 	}
+}
+
+type mutexEnv struct {
+	mutex sync.Mutex `env:"mutex"`
+	Name  string
+}
+
+func TestMutex(t *testing.T) {
+	var env = &mutexEnv{Name: "original"}
+	go func() { defer Unmock(MockField(env, "Name", "mocked 1")) }()
+	go func() { defer Unmock(MockField(env, "Name", "mocked 2")) }()
+}
+
+type mutexPtrEnv struct {
+	mutex *sync.Mutex `env:"mutex"`
+	Name  string
+}
+
+func TestMutexPtr(t *testing.T) {
+	var env = &mutexPtrEnv{mutex: &sync.Mutex{}, Name: "original"}
+
+	var latch sync.WaitGroup
+	latch.Add(2)
+
+	go func() {
+		defer Unmock(MockField(env, "Name", "mocked1"))
+		if env.Name != "mocked1" {
+			t.Fail()
+		}
+		latch.Done()
+	}()
+
+	go func() {
+		defer Unmock(MockField(env, "Name", "mocked2"))
+		if env.Name != "mocked2" {
+			t.Fail()
+		}
+		latch.Done()
+	}()
+
+	latch.Wait()
+}
+
+type mutexFuncEnv struct {
+	mutex Locker `env:"mutex"`
+	Name  string
+}
+
+func TestMutexFunc(t *testing.T) {
+	var lockError bool
+	mutex := sync.Mutex{}
+	var env = &mutexFuncEnv{mutex: func(old interface{}, lockUnlock bool) {
+		if lockUnlock {
+			if !mutex.TryLock() {
+				lockError = true
+			}
+		} else if !lockError {
+			mutex.Unlock()
+		}
+	}, Name: "original"}
+	defer Unmock(MockField(env, "Name", "mocked 1"))
+	defer Unmock(MockField(env, "Name", "mocked 2"))
 }
