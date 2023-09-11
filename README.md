@@ -1,6 +1,8 @@
 # envygo
 Environment aware mocking library for golang
-
+```golang
+import env github.com/celeral/envygo
+```
 ## motivation
 So much has been made out of mocking while testing. There are elaborate framewors where a Golang coder is expected to create the interfaces and then generate code from these interfaces that can be used to verify certain behavior. Many of these frameworks are wildly accepted, probably because these framework capitalized on a certain taste the developers developed and came to expect from mocking libraries prior to advent of Golang. Yet article after article, especially when we talk about missing polymorphism in Golang, we talk about how the function of Go function should be modified by passing it a function as an argument.
 
@@ -24,7 +26,7 @@ func ReadConfiguration(relativePath string) Config, error {
 ### test
 ```golang
 func TestReadConfigurationCaseEmptyFile(t *testing.T) {
-	defer Mock(Os, "ReadFile", func(name string) ([]byte, error) { return []byte{}, nil })()
+	defer MockField(Os, "ReadFile", func(name string) ([]byte, error) { return []byte{}, nil })()
 
 	if config, err := ReadConfiguration("this/path/does/not/exist"); err != nil {
 		  if !config.IsEmpty() {
@@ -40,6 +42,12 @@ How is this possible, I hear some of you ask. Only "some" because others probabl
 
 ### src again
 ```golang
+import env github.com/celeral/envygo
+
+var Mock = env.Mock
+var Unmock = env.Unmock
+var MockField = env.MockField
+ 
 var Os = &struct {
         Create   func(name string) (*os.File, error)
 	ReadFile func(name string) ([]byte, error)
