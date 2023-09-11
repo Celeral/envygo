@@ -6,7 +6,7 @@ So much has been made out of mocking while testing. There are elaborate framewor
 
 Really... Mocking should not be so invasive or convoluted. It need not have its own chapter... or may be having it does help to stress the importance of writing meaningful unit tests; May be a chapter is indeed needed... to save the developers from the trap of writing integration tests disguised as unit tests. I digress.
 
-So without further adieu, how about
+So without further adieu, how about some code. 
 
 ### src
 ```golang
@@ -41,6 +41,7 @@ How is this possible, I hear some of you ask. Only "some" because others probabl
 ### src again
 ```golang
 var Os = &struct {
+        Create   func(name string) (*os.File, error)
 	ReadFile func(name string) ([]byte, error)
 }{
   // for now these are the only 2 functions I would want to override
@@ -86,11 +87,11 @@ func TestDoSomething(t *testing.T)
 
    doSomething()
 
-   // code to verify that something was really done with our test configurationFile
+   // code to verify that something was really done with our test configurationFile by doSomething
 }
 ```
 
-## Other features
+## other features
 
 The footprint of the envygo is tiny. You will easily figure out what it has to offer by looking at source. But one cryptic thing is support for parallelism while mocking. When running tests in parallel, if you dont want one test's environment modeling (mocking) clobbering that of another then you would want the later one to wait until the former is done. To achieve it you can do one of the following.
 
@@ -120,7 +121,7 @@ type MyEnv struct {
 
 ## feedback
 
-what do you think?
+what do you think? stars, issues, emails - I am ears!
 
 
 
